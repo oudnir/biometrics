@@ -1,6 +1,6 @@
 workflows:
-  ios -free-build:
-    name: i0S Free Accounts Build
+  ios-free-build:
+    name: iOS Free Accounts Build
     max_build_duration: 120
     instance_type: mac_mini_m1
     environment:
@@ -11,12 +11,17 @@ workflows:
         script: flutter packages pub get
       - name: Build unsigned iOS IPA
         script: |
-          #   The --no-codesign flag is critical for free accounts flutter 
-          build ios --release --no-codesign 
-        
-          # Manually package the app into a •ipa structure 
+          # 1. Build the .app bundle without code signing
+          flutter build ios --release --no-codesign 
+          
+          # 2. Create the standard iOS Payload folder structure
+          # Flutter builds to 'iphoneos', not 'iphones'
           mkdir -p build/ios/iphoneos/Payload
-          cp-rbuild/ios/iphones/Runner.app build/ios/iphones/Payload/ 
-          cd build/ios/iphones &å zip -r unsigned_app.ipa Payload
+          
+          # 3. Copy the Runner.app into the Payload folder
+          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/ 
+          
+          # 4. Zip the Payload folder and rename it to .ipa
+          cd build/ios/iphoneos && zip -r unsigned_app.ipa Payload
     artifacts:
-        - build/ios/iphoneos/unsigned_app.ipa
+      - build/ios/iphoneos/unsigned_app.ipa

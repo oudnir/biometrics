@@ -802,7 +802,7 @@ class _MainAppState extends State<MainApp> {
                         );
                       },
                       child: CupertinoListTile(
-                        trailing: const Icon(CupertinoIcons.chevron_forward),
+                        trailing: const Icon(CupertinoIcons.info_circle),
                         leading: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
@@ -820,7 +820,7 @@ class _MainAppState extends State<MainApp> {
 
                     // ---- SIGN OUT ----
                     CupertinoListTile(
-                      trailing: const Icon(CupertinoIcons.arrow_right_circle_fill),
+                      trailing: const Icon(CupertinoIcons.chevron_back),
                       leading: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(

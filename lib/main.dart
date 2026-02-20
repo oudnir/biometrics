@@ -1,12 +1,6 @@
-import 'dart:io';
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/cupertino.dart';
-import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:hive/hive.dart';
 import 'package:local_auth/local_auth.dart';
 
 final GlobalKey<NavigatorState> navKey = GlobalKey<NavigatorState>();
@@ -27,14 +21,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool showLanding = true;
-  double dataAllocation = 0.0;
   bool isDark = true;
-  bool _loaderOpen = false;
-  String secretKey =
-      "xnd_development_oq9wRO2BbI4TFJ40nNjBFNaWaBC7cepjUgNjCs9xm0E5FM55fTF3Jy81UC6NGxz0";
 
-  // Function to toggle theme from child widgets
   void toggleTheme() {
     setState(() {
       isDark = !isDark;
@@ -48,120 +36,22 @@ class _MyAppState extends State<MyApp> {
       navigatorKey: navKey,
       theme: CupertinoThemeData(
         brightness: isDark ? Brightness.dark : Brightness.light,
-      ),
-      home: const AppRouter(),
-    );
-  }
-
-  Widget buildLandingPage(BuildContext context) {
-    return CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.white,
-      child: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              CupertinoIcons.creditcard_fill,
-              size: 100,
-              color: CupertinoColors.activeBlue,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              "GameVault",
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: CupertinoColors.activeBlue,
-                fontFamily: "SF Pro",
-                letterSpacing: 1.2,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Secure Payments, Instant Delivery",
-              style: TextStyle(
-                fontSize: 18,
-                color: CupertinoColors.systemGrey,
-                fontFamily: "SF Pro",
-              ),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: const [
-                  Column(
-                    children: [
-                      Icon(CupertinoIcons.lock_fill,
-                          size: 30, color: CupertinoColors.activeBlue),
-                      SizedBox(height: 6),
-                      Text("Secure",
-                          style: TextStyle(
-                              color: CupertinoColors.black,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      Icon(CupertinoIcons.clock_fill,
-                          size: 30, color: CupertinoColors.activeBlue),
-                      SizedBox(height: 6),
-                      Text("Fast",
-                          style: TextStyle(
-                              color: CupertinoColors.black,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      Icon(CupertinoIcons.person_2_fill,
-                          size: 30, color: CupertinoColors.activeBlue),
-                      SizedBox(height: 6),
-                      Text("Support",
-                          style: TextStyle(
-                              color: CupertinoColors.black,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 40),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  showLanding = false;
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 60),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.activeBlue,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: CupertinoColors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: const Text(
-                  "RECHARGE NOW",
-                  style: TextStyle(
-                    color: CupertinoColors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                    fontFamily: "SF Pro",
-                  ),
-                ),
-              ),
-            ),
-          ],
+        primaryColor: const Color(0xFF5E5CE6), // soft purple accent
+        scaffoldBackgroundColor:
+        isDark ? const Color(0xFF0F0F10) : const Color(0xFFF5F5F7),
+        textTheme: const CupertinoTextThemeData(
+          navTitleTextStyle: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+          textStyle: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+          ),
         ),
       ),
+
+      home: const AppRouter(),
     );
   }
 }
@@ -180,62 +70,39 @@ class _AppRouterState extends State<AppRouter> {
   @override
   Widget build(BuildContext context) {
     final username = box.get("username");
-
     if (username == null || username.toString().isEmpty) {
-      // No account exists, show create account
       return const CreateAccountPage();
-    } else {
-      // Account exists, check if logged in
-      final isLoggedIn = box.get("isLoggedIn", defaultValue: false);
-
-      if (!isLoggedIn) {
-        // Not logged in, show login page
-        return LoginPage(
-          onLoginSuccess: () {
-            // Update login state in Hive
-            box.put("isLoggedIn", true);
-
-            // Force rebuild of AppRouter
-            setState(() {});
-          },
-        );
-      } else {
-        // Logged in, show main app
-        return MainApp(
-          dataAllocation: 0.0,
-          isDark: true,
-          onThemeChanged: () {},
-          secretKey: "xnd_development_oq9wRO2BbI4TFJ40nNjBFNaWaBC7cepjUgNjCs9xm0E5FM55fTF3Jy81UC6NGxz0",
-          loaderOpen: false,
-          onLogout: () {
-            // Update login state in Hive
-            box.put("isLoggedIn", false);
-
-            // Force rebuild of AppRouter
-            setState(() {});
-          },
-        );
-      }
     }
+
+    final isLoggedIn = box.get("isLoggedIn", defaultValue: false);
+    if (!isLoggedIn) {
+      return LoginPage(onLoginSuccess: () {
+        box.put("isLoggedIn", true);
+        setState(() {});
+      });
+    }
+
+    return MainApp(
+      isDark: CupertinoTheme.of(context).brightness == Brightness.dark,
+      onThemeChanged: () => setState(() {}),
+      onLogout: () {
+        box.put("isLoggedIn", false);
+        setState(() {});
+      },
+    );
   }
 }
 
-// ---------------- FULL APP ----------------
+// ---------------- MAIN APP ----------------
 class MainApp extends StatefulWidget {
-  final double dataAllocation;
   final bool isDark;
   final VoidCallback onThemeChanged;
-  final String secretKey;
-  final bool loaderOpen;
   final VoidCallback onLogout;
 
   const MainApp({
     super.key,
-    required this.dataAllocation,
     required this.isDark,
     required this.onThemeChanged,
-    required this.secretKey,
-    required this.loaderOpen,
     required this.onLogout,
   });
 
@@ -244,184 +111,177 @@ class MainApp extends StatefulWidget {
 }
 
 class _MainAppState extends State<MainApp> {
-  double dataAllocation = 0.0;
-  bool _loaderOpen = false;
-  Timer? _paymentTimer;
   final LocalAuthentication auth = LocalAuthentication();
   bool biometricsEnabled = false;
   bool biometricsAvailable = false;
 
+  List<Map<String, dynamic>> todoList = [];
+
   @override
   void initState() {
     super.initState();
-    dataAllocation = widget.dataAllocation;
-    _loaderOpen = widget.loaderOpen;
+    _loadTasks();
     _checkBiometricsAvailability();
     _loadBiometricsSetting();
   }
+  void _loadTasks() {
+    final box = Hive.box('database');
+    final savedTasks = box.get("tasks", defaultValue: []);
+
+    todoList = List<Map<String, dynamic>>.from(
+      (savedTasks as List).map((e) => Map<String, dynamic>.from(e)),
+    );
+  }
+
+
 
   Future<void> _checkBiometricsAvailability() async {
     try {
       final canCheckBiometrics = await auth.canCheckBiometrics;
-      final List<BiometricType> availableBiometrics = await auth.getAvailableBiometrics();
-
+      final available = await auth.getAvailableBiometrics();
+      Hive.box('database').put("tasks", todoList);
       setState(() {
-        biometricsAvailable = canCheckBiometrics && availableBiometrics.isNotEmpty;
+        biometricsAvailable = canCheckBiometrics && available.isNotEmpty;
       });
     } catch (e) {
-      print("Error checking biometrics availability: $e");
-      setState(() {
-        biometricsAvailable = false;
-      });
+      biometricsAvailable = false;
     }
   }
 
   Future<void> _loadBiometricsSetting() async {
-    try {
-      final box = Hive.box('database');
-      final savedBiometrics = box.get("biometricsEnabled", defaultValue: false);
-      setState(() {
-        biometricsEnabled = savedBiometrics;
-      });
-    } catch (e) {
-      print("Error loading biometrics setting: $e");
-    }
+    final box = Hive.box('database');
+    final saved = box.get("biometricsEnabled", defaultValue: false);
+    setState(() {
+      biometricsEnabled = saved;
+    });
   }
 
   Future<void> toggleBiometrics() async {
-    try {
-      final box = Hive.box('database');
+    final box = Hive.box('database');
 
-      if (!biometricsEnabled) {
-        // Enable biometrics - first check if available
-        if (!biometricsAvailable) {
-          showCupertinoDialog(
-            context: context,
-            builder: (_) => CupertinoAlertDialog(
-              title: const Text("Biometrics Not Available"),
-              content: const Text("Your device does not support biometrics or they are not set up."),
-              actions: [
-                CupertinoDialogAction(
-                  child: const Text("OK"),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          );
-          return;
-        }
-
-        // Try to authenticate to enable biometrics
-        try {
-          final authenticated = await auth.authenticate(
-            localizedReason: 'Authenticate to enable biometrics login',
-          );
-
-          if (authenticated) {
-            setState(() {
-              biometricsEnabled = true;
-            });
-            box.put("biometricsEnabled", true);
-
-            // Show success message
-            showCupertinoDialog(
-              context: context,
-              builder: (_) => const CupertinoAlertDialog(
-                title: Text("Biometrics Enabled"),
-                content: Text("Biometrics login has been enabled successfully."),
-                actions: [
-                  CupertinoDialogAction(
-                    child: Text("OK"),
-                    onPressed: null,
-                  ),
-                ],
-              ),
-            );
-          } else {
-            // Authentication failed or cancelled
-            showCupertinoDialog(
-              context: context,
-              builder: (_) => const CupertinoAlertDialog(
-                title: Text("Authentication Failed"),
-                content: Text("Could not authenticate. Biometrics not enabled."),
-                actions: [
-                  CupertinoDialogAction(
-                    child: Text("OK"),
-                    onPressed: null,
-                  ),
-                ],
-              ),
-            );
-          }
-        } catch (e) {
-          print("Authentication error: $e");
-          showCupertinoDialog(
-            context: context,
-            builder: (_) => CupertinoAlertDialog(
-              title: const Text("Authentication Error"),
-              content: Text("Error: $e"),
-              actions: [
-                CupertinoDialogAction(
-                  child: const Text("OK"),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          );
-        }
-      } else {
-        // Disable biometrics - show confirmation dialog
+    // Turn ON biometrics
+    if (!biometricsEnabled) {
+      if (!biometricsAvailable) {
         showCupertinoDialog(
           context: context,
           builder: (_) => CupertinoAlertDialog(
-            title: const Text("Disable Biometrics"),
-            content: const Text("Are you sure you want to disable biometrics login?"),
+            title: const Text("Biometrics Not Available"),
+            content: const Text("Your device does not support biometrics."),
             actions: [
               CupertinoDialogAction(
-                child: const Text("Cancel"),
+                child: const Text("OK"),
                 onPressed: () => Navigator.pop(context),
               ),
-              CupertinoDialogAction(
-                child: const Text("Disable"),
-                isDestructiveAction: true,
-                onPressed: () {
-                  Navigator.pop(context); // Close confirmation dialog
-                  setState(() {
-                    biometricsEnabled = false;
-                  });
-                  box.put("biometricsEnabled", false);
+            ],
+          ),
+        );
+        return;
+      }
 
-                  // Show disabled message
-                  showCupertinoDialog(
-                    context: context,
-                    builder: (_) => const CupertinoAlertDialog(
-                      title: Text("Biometrics Disabled"),
-                      content: Text("Biometrics login has been disabled."),
-                      actions: [
-                        CupertinoDialogAction(
-                          child: Text("OK"),
-                          onPressed: null,
-                        ),
-                      ],
+      try {
+        final ok = await auth.authenticate(
+          localizedReason: 'Authenticate to enable biometrics login',
+        );
+        if (ok) {
+          setState(() => biometricsEnabled = true);
+          box.put("biometricsEnabled", true);
+
+          // Popup confirmation for enabling
+          showCupertinoDialog(
+            context: context,
+            barrierDismissible: true,
+            builder: (_) {
+              Future.delayed(const Duration(seconds: 2), () {
+                Navigator.pop(context);
+              });
+              return CupertinoPopupSurface(
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGreen.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  );
-                },
+                    child: const Text(
+                      "Biometrics Enabled",
+                      style: TextStyle(
+                        color: CupertinoColors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        }
+      } catch (e) {
+        showCupertinoDialog(
+          context: context,
+          builder: (_) => CupertinoAlertDialog(
+            title: const Text("Error"),
+            content: Text(e.toString()),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text("OK"),
+                onPressed: () => Navigator.pop(context),
               ),
             ],
           ),
         );
       }
-    } catch (e) {
-      print("Error toggling biometrics: $e");
+
+      // Turn OFF biometrics
+    } else {
       showCupertinoDialog(
         context: context,
         builder: (_) => CupertinoAlertDialog(
-          title: const Text("Error"),
-          content: Text("An error occurred: $e"),
+          title: const Text("Disable Biometrics"),
+          content: const Text("Are you sure you want to disable biometrics?"),
           actions: [
             CupertinoDialogAction(
-              child: const Text("OK"),
+              child: const Text("Cancel"),
               onPressed: () => Navigator.pop(context),
+            ),
+            CupertinoDialogAction(
+              child: const Text("Disable"),
+              isDestructiveAction: true,
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() => biometricsEnabled = false);
+                box.put("biometricsEnabled", false);
+
+                // Popup confirmation for disabling
+                showCupertinoDialog(
+                  context: context,
+                  barrierDismissible: true,
+                  builder: (_) {
+                    Future.delayed(const Duration(seconds: 2), () {
+                      Navigator.pop(context);
+                    });
+                    return CupertinoPopupSurface(
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.systemRed.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            "Biometrics Disabled",
+                            style: TextStyle(
+                              color: CupertinoColors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),
@@ -429,223 +289,45 @@ class _MainAppState extends State<MainApp> {
     }
   }
 
-  Future<void> payNow(BuildContext context, int price, double points) async {
-    _loaderOpen = true;
-    showCupertinoDialog(
+  void _showAddTaskDialog() {
+    final TextEditingController controller = TextEditingController();
+
+    showCupertinoModalPopup(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => const CupertinoAlertDialog(
-        title: Text("Waiting for Payment Page"),
-        content: SizedBox(
-          height: 50,
-          child: Center(child: CupertinoActivityIndicator()),
-        ),
-      ),
-    );
-
-    String auth = 'Basic ' + base64Encode(utf8.encode(widget.secretKey));
-    final url = "https://api.xendit.co/v2/invoices/";
-
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {"Authorization": auth, "Content-Type": "application/json"},
-      body: jsonEncode({"external_id": "invoice_example", "amount": price}),
-    );
-
-    final data = jsonDecode(response.body);
-    String id = data['id'];
-    String invoiceUrl = data['invoice_url'];
-
-    _paymentTimer?.cancel();
-
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        Navigator.push(
-          context,
-          CupertinoPageRoute(builder: (_) => PaymentPage(url: invoiceUrl)),
-        );
-      }
-    });
-
-    _checkPaymentStatus(auth, url, id, points);
-  }
-
-  void _checkPaymentStatus(String auth, String url, String id, double points) {
-    _paymentTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      try {
-        final response =
-        await http.get(Uri.parse(url + id), headers: {"Authorization": auth});
-        final data = jsonDecode(response.body);
-
-        if (data['status'] == "PAID") {
-          timer.cancel();
-
-          setState(() {
-            dataAllocation += points;
-          });
-
-          if (_loaderOpen &&
-              Navigator.of(navKey.currentContext!, rootNavigator: true).canPop()) {
-            Navigator.of(navKey.currentContext!, rootNavigator: true).pop();
-            _loaderOpen = false;
-          }
-
-          if (Navigator.canPop(navKey.currentContext!)) {
-            Navigator.pop(navKey.currentContext!);
-          }
-
-          Future.microtask(() {
-            if (navKey.currentContext != null) {
-              showCupertinoDialog(
-                context: navKey.currentContext!,
-                builder: (_) => CupertinoAlertDialog(
-                  title: const Text("Payment Successful"),
-                  content: const Text("Your points have been added!"),
-                  actions: [
-                    CupertinoDialogAction(
-                      child: const Text("OK"),
-                      onPressed: () {
-                        Navigator.pop(navKey.currentContext!);
-                      },
-                    ),
-                  ],
-                ),
-              );
-            }
-          });
-        }
-      } catch (_) {}
-    });
-  }
-
-  @override
-  void dispose() {
-    _paymentTimer?.cancel();
-    super.dispose();
-  }
-
-  Widget gpoints(BuildContext context, String price, String points, String name) {
-    return GestureDetector(
-      onTap: () => payNow(context, int.parse(price), double.parse(points)),
-      child: Container(
-        width: 170,
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: CupertinoColors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: CupertinoColors.black.withOpacity(0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            )
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                "$price PHP",
-                style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: CupertinoColors.activeBlue),
-              ),
-            ),
-            const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                "+$points Points",
-                style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: CupertinoColors.systemBlue),
-              ),
-            ),
-            const Spacer(),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: CupertinoColors.activeBlue,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                "Buy",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: CupertinoColors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget headerCard() {
-    final box = Hive.box('database');
-    final username = box.get("username") ?? "User";
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [CupertinoColors.systemBlue, CupertinoColors.activeBlue],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: CupertinoColors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "$username",
-            style: const TextStyle(
-                color: CupertinoColors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold),
+      builder: (_) => CupertinoActionSheet(
+        title: const Text("New Task"),
+        message: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: CupertinoTextField(
+            controller: controller,
+            placeholder: "Enter task name",
           ),
-          const SizedBox(height: 4),
-          const Text(
-            "IGN: Daiguren Hyorinmaru",
-            style: TextStyle(color: CupertinoColors.systemGrey6),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            dataAllocation.toStringAsFixed(1),
-            style: const TextStyle(
-                color: CupertinoColors.white,
-                fontSize: 48,
-                fontWeight: FontWeight.bold),
-          ),
-          const Text(
-            "Game Credit Points",
-            style: TextStyle(color: CupertinoColors.systemGrey6, fontSize: 16),
+        ),
+        actions: [
+          CupertinoActionSheetAction(
+            child: const Text("Add Task"),
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                setState(() {
+                  todoList.add({
+                    "Task": controller.text,
+                    "isDone": false,
+                  });
+                });
+                Hive.box('database').put("tasks", todoList);
+              }
+              Navigator.pop(context);
+            },
           ),
         ],
+        cancelButton: CupertinoActionSheetAction(
+          child: const Text("Cancel"),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -653,130 +335,201 @@ class _MainAppState extends State<MainApp> {
       tabBar: CupertinoTabBar(
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.home),
-            label: "Home",
-          ),
+              icon: Icon(CupertinoIcons.home), label: "Home"),
           BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.settings),
-            label: "Settings",
-          ),
+              icon: Icon(CupertinoIcons.settings), label: "Settings"),
         ],
       ),
       tabBuilder: (context, index) {
         if (index == 0) {
+          // Home Tab
           return CupertinoPageScaffold(
+            navigationBar: CupertinoNavigationBar(
+              trailing: CupertinoButton(
+                padding: EdgeInsets.zero,
+                child: const Icon(CupertinoIcons.add),
+                onPressed: _showAddTaskDialog,
+              ),
+            ),
             child: SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
+              child: todoList.isEmpty
+                  ? const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      CupertinoIcons.calendar,
+                      size: 52,
+                      color: CupertinoColors.systemGrey2,
+
+                      fontWeight: FontWeight.w500,
+
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      "No Errands Today!",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: CupertinoColors.systemGrey,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+                  : ListView(
                 children: [
-                  headerCard(),
-                  const SizedBox(height: 20),
-                  const Text("Game Points Credits",
-                      style:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  SizedBox(
-                    height: 140,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      children: [
-                        gpoints(context, "100", "110", "G Points"),
-                        gpoints(context, "200", "210", "G Points"),
-                        gpoints(context, "500", "510", "G Points"),
-                        gpoints(context, "499", "550", "G Points"),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    height: 140,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      children: [
-                        gpoints(context, "10", "11", "G Points"),
-                        gpoints(context, "20", "22", "G Points"),
-                        gpoints(context, "50", "55", "G Points"),
-                        gpoints(context, "70", "75", "G Points"),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    height: 140,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      children: [
-                        gpoints(context, "99", "200", "G Points"),
-                        gpoints(context, "199", "499", "G Points"),
-                        gpoints(context, "299", "699", "G Points"),
-                        gpoints(context, "399", "799", "G Points"),
-                      ],
-                    ),
+                  CupertinoListSection.insetGrouped(
+                    header: const Text("To Do List"),
+                    children: List.generate(todoList.length, (i) {
+                      final item = todoList[i];
+                      return Dismissible(
+                        key: Key("${item["Task"]}$i"),
+                        direction: DismissDirection.endToStart,
+                        confirmDismiss: (_) async {
+                          return await showCupertinoDialog<bool>(
+                            context: context,
+                            builder: (_) => CupertinoAlertDialog(
+                              title: const Text("Delete Task"),
+                              content: const Text(
+                                  "Are you sure you want to delete this task?"),
+                              actions: [
+                                CupertinoDialogAction(
+                                  child: const Text("Cancel"),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                ),
+                                CupertinoDialogAction(
+                                  isDestructiveAction: true,
+                                  child: const Text("Delete"),
+                                  onPressed: () =>
+                                      Navigator.pop(context, true),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        onDismissed: (_) {
+                          setState(() {
+                            todoList.removeAt(i);
+                          });
+                          Hive.box('database').put("tasks", todoList);
+                        },
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          color: CupertinoColors.systemRed,
+                          child: const Icon(
+                            CupertinoIcons.delete,
+                            color: CupertinoColors.white,
+                          ),
+                        ),
+                        child: CupertinoListTile(
+                          leading: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                item["isDone"] = !item["isDone"];
+                              });
+                              Hive.box('database').put("tasks", todoList);
+                            },
+                            child: Icon(
+                              item["isDone"]
+                                  ? CupertinoIcons.check_mark_circled_solid
+                                  : CupertinoIcons.circle,
+                              color: item["isDone"]
+                                  ? CupertinoColors.systemGreen
+                                  : CupertinoColors.systemGrey,
+                            ),
+                          ),
+                          title: GestureDetector(
+                            onLongPress: () async {
+                              final shouldDelete = await showCupertinoDialog<
+                                  bool>(
+                                context: context,
+                                builder: (_) => CupertinoAlertDialog(
+                                  title: const Text("Delete Task"),
+                                  content: const Text(
+                                      "Are you sure you want to delete this task?"),
+                                  actions: [
+                                    CupertinoDialogAction(
+                                      child: const Text("Cancel"),
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                    ),
+                                    CupertinoDialogAction(
+                                      isDestructiveAction: true,
+                                      child: const Text("Delete"),
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (shouldDelete ?? false) {
+                                setState(() {
+                                  todoList.removeAt(i);
+                                });
+                                Hive.box('database').put("tasks", todoList);
+                              }
+                            },
+                            child: Text(
+                              item["Task"],
+                              style: TextStyle(
+                                decoration: item["isDone"]
+                                    ? TextDecoration.lineThrough
+                                    : TextDecoration.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
                   ),
                 ],
               ),
             ),
           );
-        }
-
-        return CupertinoPageScaffold(
-          child: SafeArea(
-            child: ListView(
-              children: [
-                CupertinoListSection.insetGrouped(
-                  children: [
-                    // ---- DARK MODE ----
-                    CupertinoListTile(
-                      trailing: CupertinoSwitch(
-                        value: widget.isDark,
-                        onChanged: (value) {
-                          widget.onThemeChanged();
-                        },
-                      ),
-                      leading: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: CupertinoColors.systemYellow,
-                          borderRadius: BorderRadius.circular(6),
+        } else {
+          // Settings Tab
+          return CupertinoPageScaffold(
+            navigationBar: const CupertinoNavigationBar(
+              middle: Text("Settings"),
+            ),
+            child: SafeArea(
+              child: ListView(
+                children: [
+                  CupertinoListSection.insetGrouped(
+                    children: [
+                      CupertinoListTile(
+                        title: const Text("Dark Mode"),
+                        leading: const Icon(CupertinoIcons.moon_fill,
+                            color: CupertinoColors.systemYellow),
+                        trailing: CupertinoSwitch(
+                          value: widget.isDark,
+                          onChanged: (_) => widget.onThemeChanged(),
                         ),
-                        child: const Icon(CupertinoIcons.moon_fill,
-                            color: CupertinoColors.white, size: 20),
                       ),
-                      title: const Text("Dark Mode"),
-                    ),
-
-                    // ---- BIOMETRICS ----
-                    CupertinoListTile(
-                      trailing: CupertinoSwitch(
-                        value: biometricsEnabled,
-                        onChanged: (value) async {
-                          await toggleBiometrics();
-                        },
-                      ),
-                      leading: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: biometricsAvailable
-                              ? CupertinoColors.systemGreen
-                              : CupertinoColors.systemGrey,
-                          borderRadius: BorderRadius.circular(6),
+                      CupertinoListTile(
+                        title: const Text("Biometrics"),
+                        subtitle: biometricsAvailable
+                            ? const Text("Use fingerprint or face ID")
+                            : const Text("Not available on this device"),
+                        leading: const Icon(CupertinoIcons.lock_shield_fill,
+                            color: CupertinoColors.systemGreen),
+                        trailing: CupertinoSwitch(
+                          value: biometricsEnabled,
+                          onChanged: (_) => toggleBiometrics(),
                         ),
-                        child: const Icon(CupertinoIcons.lock_shield_fill,
-                            color: CupertinoColors.white, size: 20),
                       ),
-                      title: const Text("Biometrics"),
-                      subtitle: biometricsAvailable
-                          ? const Text("Use fingerprint or face ID")
-                          : const Text("Not available on this device"),
-                    ),
-
-                    // ---- ABOUT ----
-                    GestureDetector(
-                      onTap: () {
-                        showCupertinoDialog(
-                          context: context,
-                          builder: (context) {
-                            return CupertinoAlertDialog(
+                      CupertinoListTile(
+                        title: const Text("About"),
+                        leading: const Icon(CupertinoIcons.info_circle_fill,
+                            color: CupertinoColors.systemPurple),
+                        onTap: () {
+                          showCupertinoDialog(
+                            context: context,
+                            builder: (_) => CupertinoAlertDialog(
                               title: const Text("Members"),
                               content: Column(
                                 mainAxisSize: MainAxisSize.min,
@@ -797,126 +550,54 @@ class _MainAppState extends State<MainApp> {
                                   onPressed: () => Navigator.pop(context),
                                 ),
                               ],
-                            );
-                          },
-                        );
-                      },
-                      child: CupertinoListTile(
-                        trailing: const Icon(CupertinoIcons.info_circle),
-                        leading: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                              color: CupertinoColors.systemPurple,
-                              borderRadius: BorderRadius.circular(6)),
-                          child: const Icon(
-                            CupertinoIcons.info,
-                            color: CupertinoColors.white,
-                            size: 20,
-                          ),
-                        ),
-                        title: const Text("About"),
+                            ),
+                          );
+                        },
                       ),
-                    ),
-
-                    // ---- SIGN OUT ----
-                    CupertinoListTile(
-                      trailing: const Icon(CupertinoIcons.chevron_back),
-                      leading: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                            color: CupertinoColors.systemRed,
-                            borderRadius: BorderRadius.circular(6)),
-                        child: const Icon(
-                          CupertinoIcons.square_arrow_right,
-                          color: CupertinoColors.white,
-                          size: 20,
-                        ),
+                      CupertinoListTile(
+                        title: const Text("Sign Out"),
+                        leading: const Icon(CupertinoIcons.square_arrow_right,
+                            color: CupertinoColors.systemRed),
+                        trailing: const Icon(CupertinoIcons.chevron_left),
+                        onTap: () {
+                          showCupertinoDialog(
+                            context: context,
+                            builder: (_) => CupertinoAlertDialog(
+                              title: const Text("Sign Out"),
+                              content: const Text(
+                                  "Are you sure you want to sign out?"),
+                              actions: [
+                                CupertinoDialogAction(
+                                  child: const Text("Cancel"),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                                CupertinoDialogAction(
+                                  child: const Text("Sign Out"),
+                                  isDestructiveAction: true,
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    widget.onLogout();
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                      title: const Text("Sign Out"),
-                      onTap: () async {
-                        showCupertinoDialog(
-                          context: context,
-                          builder: (_) => CupertinoAlertDialog(
-                            title: const Text("Sign Out"),
-                            content: const Text("Are you sure you want to sign out?"),
-                            actions: [
-                              CupertinoDialogAction(
-                                child: const Text("Cancel"),
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                              CupertinoDialogAction(
-                                child: const Text("Sign Out"),
-                                isDestructiveAction: true,
-                                onPressed: () {
-                                  Navigator.pop(context); // Close dialog
-                                  widget.onLogout(); // Call logout callback
-                                },
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
+          );
+        }
       },
     );
   }
+
 }
 
-// ---------------- PAYMENT PAGE ----------------
-class PaymentPage extends StatefulWidget {
-  final String url;
-  const PaymentPage({super.key, required this.url});
-
-  @override
-  State<PaymentPage> createState() => _PaymentPageState();
-}
-
-class _PaymentPageState extends State<PaymentPage> {
-  WebViewController? controller;
-  bool openingExternal = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    if (Platform.isWindows) {
-      openingExternal = true;
-      _openExternalBrowser();
-    } else {
-      controller = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..loadRequest(Uri.parse(widget.url));
-    }
-  }
-
-  Future<void> _openExternalBrowser() async {
-    await launchUrl(Uri.parse(widget.url),
-        mode: LaunchMode.externalApplication);
-    if (mounted && Navigator.canPop(context)) Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (openingExternal || controller == null) {
-      return const CupertinoPageScaffold(
-        child: Center(child: CupertinoActivityIndicator()),
-      );
-    }
-
-    return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(middle: Text("Payment")),
-      child: WebViewWidget(controller: controller!),
-    );
-  }
-}
-
-// ---------------- CREATE ACCOUNT PAGE ----------------
+// ---------------- CREATE ACCOUNT ----------------
 class CreateAccountPage extends StatefulWidget {
   const CreateAccountPage({super.key});
 
@@ -926,100 +607,213 @@ class CreateAccountPage extends StatefulWidget {
 
 class _CreateAccountPageState extends State<CreateAccountPage> {
   final box = Hive.box('database');
-  final TextEditingController _username = TextEditingController();
-  final TextEditingController _password = TextEditingController();
-  bool _obscurePassword = true;
-  bool loading = false;
+  final username = TextEditingController();
+  final password = TextEditingController();
+  final confirmPassword = TextEditingController();
+  bool obscure = true;
+
+  bool isValidPassword(String password) {
+    final regex = RegExp(
+      r'^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$&*~]).{8,}$',
+    );
+    return regex.hasMatch(password);
+  }
+
+
+  Widget _input({
+    required IconData icon,
+    required String placeholder,
+    required TextEditingController controller,
+    bool isPassword = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: CupertinoTheme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1C1C1E)
+            : CupertinoColors.white,
+
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: CupertinoColors.systemGrey),
+          const SizedBox(width: 12),
+          Expanded(
+            child: CupertinoTextField(
+              controller: controller,
+              placeholder: placeholder,
+              obscureText: isPassword ? obscure : false,
+              decoration: null,
+              style: const TextStyle(color: CupertinoColors.white),
+              placeholderStyle: const TextStyle(color: CupertinoColors.systemGrey),
+            ),
+          ),
+          if (isPassword)
+            GestureDetector(
+              onTap: () => setState(() => obscure = !obscure),
+              child: Icon(
+                obscure ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
+                color: CupertinoColors.systemGrey,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text("Create Account"),
-        automaticallyImplyLeading: false,
-      ),
+      backgroundColor: const Color(0xFF0F0F10),
+
       child: SafeArea(
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 30),
               const Text(
                 "Create Account",
-                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.5,
+
+                  color: CupertinoColors.white,
                 ),
               ),
-              const SizedBox(height: 30),
-              CupertinoTextField(
-                controller: _username,
+              const SizedBox(height: 8),
+              const Text(
+                "Create an account to start your To do list",
+                style: TextStyle(color: CupertinoColors.systemGrey),
+              ),
+              const SizedBox(height: 32),
+              Container(
+                width: 90,
+                height: 90,
+                decoration: const BoxDecoration(
+                  color: const Color(0xFF5E5CE6),
+
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  CupertinoIcons.person_fill,
+                  color: CupertinoColors.white,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 32),
+              _input(
+                icon: CupertinoIcons.person,
                 placeholder: "Username",
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                prefix: const Padding(
-                  padding: EdgeInsets.only(left: 12),
-                  child: Icon(CupertinoIcons.person),
-                ),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                controller: username,
               ),
-              const SizedBox(height: 18),
-              CupertinoTextField(
-                controller: _password,
+              const SizedBox(height: 16),
+              _input(
+                icon: CupertinoIcons.lock,
                 placeholder: "Password",
-                obscureText: _obscurePassword,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                prefix: const Padding(
-                  padding: EdgeInsets.only(left: 12),
-                  child: Icon(CupertinoIcons.lock),
-                ),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                controller: password,
+                isPassword: true,
               ),
-              const SizedBox(height: 18),
-              CupertinoButton.filled(
-                onPressed: () {
-                  final username = _username.text.trim();
-                  final password = _password.text.trim();
+              const SizedBox(height: 16),
+              _input(
+                icon: CupertinoIcons.lock_rotation,
+                placeholder: "Confirm Password",
+                controller: confirmPassword,
+                isPassword: true,
+              ),
 
-                  if (username.isEmpty || password.isEmpty) {
-                    showCupertinoDialog(
-                      context: context,
-                      builder: (_) => const CupertinoAlertDialog(
-                        title: Text("Error"),
-                        content: Text("Please enter both username and password"),
-                        actions: [
-                          CupertinoDialogAction(
-                            child: Text("OK"),
-                            onPressed: null,
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: CupertinoButton(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  color: const Color(0xFF5E5CE6),
+
+                  borderRadius: BorderRadius.circular(14),
+                  onPressed: () {
+                    if (username.text.isEmpty ||
+                        password.text.isEmpty ||
+                        confirmPassword.text.isEmpty) {
+                      showCupertinoDialog(
+                        context: context,
+                        builder: (_) => CupertinoAlertDialog(
+                          title: const Text("Missing Fields"),
+                          content: const Text("Please fill in all fields."),
+                          actions: [
+                            CupertinoDialogAction(
+                              child: const Text("OK"),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (password.text != confirmPassword.text) {
+                      showCupertinoDialog(
+                        context: context,
+                        builder: (_) => CupertinoAlertDialog(
+                          title: const Text("Password Mismatch"),
+                          content: const Text("Passwords do not match."),
+                          actions: [
+                            CupertinoDialogAction(
+                              child: const Text("OK"),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      return;
+                    }
+
+                    if (!isValidPassword(password.text)) {
+                      showCupertinoDialog(
+                        context: context,
+                        builder: (_) => CupertinoAlertDialog(
+                          title: const Text("Weak Password"),
+                          content: const Text(
+                            "Password must be at least 8 characters,\n"
+                                "include 1 uppercase letter,\n"
+                                "1 number, and 1 special symbol (!@#\$&*~).",
                           ),
-                        ],
-                      ),
+                          actions: [
+                            CupertinoDialogAction(
+                              child: const Text("OK"),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      return;
+                    }
+
+                    box.put("username", username.text);
+                    box.put("password", password.text);
+                    box.put("isLoggedIn", false);
+                    box.put("biometricsEnabled", false);
+                    box.put("tasks", []);
+
+                    Navigator.pushReplacement(
+                      context,
+                      CupertinoPageRoute(builder: (_) => const AppRouter()),
                     );
-                    return;
-                  }
+                  },
 
-                  box.put("username", username);
-                  box.put("password", password);
-                  box.put("isLoggedIn", false); // Set to not logged in initially
-                  box.put("biometricsEnabled", false); // Default biometrics disabled
 
-                  // Navigate to login page
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    CupertinoPageRoute(
-                      builder: (_) => const AppRouter(),
+
+                  child: const Text(
+                    "CREATE ACCOUNT",
+                    style: TextStyle(
+                      color: CupertinoColors.white,
+                      fontWeight: FontWeight.bold,
                     ),
-                        (route) => false,
-                  );
-                },
-                child: const Text("CREATE ACCOUNT"),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1029,10 +823,9 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   }
 }
 
-// ---------------- LOGIN PAGE ----------------
+// ---------------- LOGIN ----------------
 class LoginPage extends StatefulWidget {
   final VoidCallback onLoginSuccess;
-
   const LoginPage({super.key, required this.onLoginSuccess});
 
   @override
@@ -1040,15 +833,14 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _username = TextEditingController();
-  final TextEditingController _password = TextEditingController();
-  bool loading = false;
-  bool _obscurePassword = true;
+  final username = TextEditingController();
+  final password = TextEditingController();
   final box = Hive.box('database');
   final LocalAuthentication auth = LocalAuthentication();
+
   bool biometricsAvailable = false;
   bool biometricsEnabled = false;
-  bool checkingBiometrics = true;
+  bool obscure = true;
 
   @override
   void initState() {
@@ -1057,104 +849,46 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _checkBiometrics() async {
-    try {
-      // Check if biometrics are available on the device
-      final canCheckBiometrics = await auth.canCheckBiometrics;
-      final List<BiometricType> availableBiometrics = await auth.getAvailableBiometrics();
+    final canCheck = await auth.canCheckBiometrics;
+    final available = await auth.getAvailableBiometrics();
+    final enabled = box.get("biometricsEnabled", defaultValue: false);
 
-      setState(() {
-        biometricsAvailable = canCheckBiometrics && availableBiometrics.isNotEmpty;
-      });
+    setState(() {
+      biometricsAvailable = canCheck && available.isNotEmpty;
+      biometricsEnabled = enabled && biometricsAvailable;
+    });
 
-      // Check if biometrics are enabled in app settings
-      final savedBiometrics = box.get("biometricsEnabled", defaultValue: false);
-      setState(() {
-        biometricsEnabled = savedBiometrics && biometricsAvailable;
-        checkingBiometrics = false;
-      });
-
-      // If biometrics are enabled and available, try to authenticate automatically after a delay
-      if (biometricsEnabled && biometricsAvailable) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _authenticateWithBiometrics();
-          }
-        });
-      }
-    } catch (e) {
-      print("Error checking biometrics: $e");
-      setState(() {
-        biometricsAvailable = false;
-        biometricsEnabled = false;
-        checkingBiometrics = false;
-      });
+    if (biometricsEnabled) {
+      Future.delayed(const Duration(milliseconds: 600), _authenticateWithBiometrics);
     }
   }
 
   Future<void> _authenticateWithBiometrics() async {
     try {
-      final authenticated = await auth.authenticate(
-        localizedReason: 'Authenticate to login to GameVault',
+      final ok = await auth.authenticate(
+        localizedReason: 'Authenticate to login',
+        biometricOnly: true,
       );
-
-      if (authenticated) {
-        // Get saved username and password
-        final savedUsername = box.get("username") ?? "";
-        final savedPassword = box.get("password") ?? "";
-
-        // Auto-fill the form
-        setState(() {
-          _username.text = savedUsername;
-          _password.text = savedPassword;
-        });
-
-        // Automatically login after a short delay
-        Future.delayed(const Duration(milliseconds: 300), () {
-          _login();
-        });
+      if (ok) {
+        username.text = box.get("username") ?? "";
+        password.text = box.get("password") ?? "";
+        _login();
       }
-    } catch (e) {
-      print("Biometric authentication error: $e");
-      // Don't show error dialog, just let user login manually
-    }
+    } catch (_) {}
   }
 
-  void _login() async {
-    if (_username.text.isEmpty || _password.text.isEmpty) {
-      showCupertinoDialog(
-        context: context,
-        builder: (_) => const CupertinoAlertDialog(
-          title: Text("Error"),
-          content: Text("Please enter both username and password"),
-          actions: [
-            CupertinoDialogAction(
-              child: Text("OK"),
-              onPressed: null,
-            ),
-          ],
-        ),
-      );
-      return;
-    }
+  void _login() {
+    final savedUsername = box.get("username");
+    final savedPassword = box.get("password");
 
-    setState(() => loading = true);
-
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-
-    setState(() => loading = false);
-
-    final savedUsername = box.get("username") ?? "";
-    final savedPassword = box.get("password") ?? "";
-
-    if (_username.text.trim() != savedUsername || _password.text != savedPassword) {
-      if (!mounted) return;
+    if (username.text == savedUsername && password.text == savedPassword) {
+      widget.onLoginSuccess();
+    } else {
       showCupertinoDialog(
         context: context,
         builder: (_) => CupertinoAlertDialog(
           title: const Text("Invalid Login"),
-          content: const Text("Username or password is incorrect"),
+          content: const Text("Username or password is incorrect."),
           actions: [
             CupertinoDialogAction(
               child: const Text("OK"),
@@ -1163,202 +897,138 @@ class _LoginPageState extends State<LoginPage> {
           ],
         ),
       );
-      return;
-    }
 
-    // Successful login - call the callback
-    widget.onLoginSuccess();
+    }
+  }
+
+  Widget _input({
+    required IconData icon,
+    required String placeholder,
+    required TextEditingController controller,
+    bool isPassword = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemGrey6.darkColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: CupertinoColors.systemGrey),
+          const SizedBox(width: 12),
+          Expanded(
+            child: CupertinoTextField(
+              controller: controller,
+              placeholder: placeholder,
+              obscureText: isPassword ? obscure : false,
+              decoration: null,
+              style: const TextStyle(color: CupertinoColors.white),
+              placeholderStyle: const TextStyle(color: CupertinoColors.systemGrey),
+            ),
+          ),
+          if (isPassword)
+            GestureDetector(
+              onTap: () => setState(() => obscure = !obscure),
+              child: Icon(
+                obscure ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
+                color: CupertinoColors.systemGrey,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.systemBackground,
+      backgroundColor: const Color(0xFF0F0F10),
       child: SafeArea(
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 40),
               const Text(
                 "Login",
-                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+                  color: CupertinoColors.white,
                 ),
               ),
               const SizedBox(height: 8),
               const Text(
-                "Sign in to continue to GameVault",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: CupertinoColors.systemGrey,
-                ),
+                "Sign in to create a To do list",
+                style: TextStyle(color: CupertinoColors.systemGrey),
               ),
-              const SizedBox(height: 40),
-              const Icon(
-                CupertinoIcons.person_circle_fill,
-                size: 110,
-                color: CupertinoColors.activeBlue,
-              ),
-              const SizedBox(height: 40),
-              CupertinoTextField(
-                controller: _username,
-                placeholder: "Username",
-                keyboardType: TextInputType.text,
-                autofillHints: const [AutofillHints.username],
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                prefix: const Padding(
-                  padding: EdgeInsets.only(left: 12),
-                  child: Icon(
-                    CupertinoIcons.person,
-                    color: CupertinoColors.systemGrey,
-                  ),
+              const SizedBox(height: 32),
+              Container(
+                width: 90,
+                height: 90,
+                decoration: const BoxDecoration(
+                  color: const Color(0xFF5E5CE6),
+                  
+                  shape: BoxShape.circle,
                 ),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              const SizedBox(height: 18),
-              CupertinoTextField(
-                controller: _password,
-                placeholder: "Password",
-                obscureText: _obscurePassword,
-                autofillHints: const [AutofillHints.password],
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                prefix: const Padding(
-                  padding: EdgeInsets.only(left: 12),
-                  child: Icon(
-                    CupertinoIcons.lock,
-                    color: CupertinoColors.systemGrey,
-                  ),
-                ),
-                suffix: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Icon(
-                      _obscurePassword
-                          ? CupertinoIcons.eye_slash
-                          : CupertinoIcons.eye,
-                      color: CupertinoColors.systemGrey,
-                    ),
-                  ),
-                ),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // Show loading indicator while checking biometrics
-              if (checkingBiometrics)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 15),
-                  child: CupertinoActivityIndicator(),
-                ),
-
-              // Biometrics Button (if available and enabled)
-              if (!checkingBiometrics && biometricsAvailable && biometricsEnabled)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 15),
-                  child: CupertinoButton.filled(
-                    onPressed: loading ? null : _authenticateWithBiometrics,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(CupertinoIcons.lock_shield_fill, size: 22),
-                        SizedBox(width: 8),
-                        Text(
-                          "LOGIN WITH BIOMETRICS",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              CupertinoButton.filled(
-                onPressed: loading ? null : _login,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                borderRadius: BorderRadius.circular(16),
-                child: loading
-                    ? const CupertinoActivityIndicator(
+                child: const Icon(
+                  CupertinoIcons.person_fill,
                   color: CupertinoColors.white,
-                )
-                    : const Text(
-                  "LOGIN",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.1,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 32),
+              _input(
+                icon: CupertinoIcons.person,
+                placeholder: "Username",
+                controller: username,
+              ),
+              const SizedBox(height: 16),
+              _input(
+                icon: CupertinoIcons.lock,
+                placeholder: "Password",
+                controller: password,
+                isPassword: true,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: CupertinoButton(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  color: const Color(0xFF5E5CE6),
+
+                  borderRadius: BorderRadius.circular(14),
+                  onPressed: _login,
+                  child: const Text(
+                    "LOGIN",
+                    style: TextStyle(
+                      color: CupertinoColors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 15),
-              CupertinoButton.filled(
-                color: CupertinoColors.systemRed,
-                onPressed: loading
-                    ? null
-                    : () {
-                  showCupertinoDialog(
-                    context: context,
-                    builder: (_) => CupertinoAlertDialog(
-                      title: const Text("Erase Data"),
-                      content: const Text(
-                          "Are you sure you want to remove your saved account data?"),
-                      actions: [
-                        CupertinoDialogAction(
-                          child: const Text("Cancel"),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        CupertinoDialogAction(
-                          child: const Text("OK"),
-                          onPressed: () {
-                            box.delete("username");
-                            box.delete("password");
-                            box.delete("isLoggedIn");
-                            box.delete("biometricsEnabled");
-                            Navigator.pop(context);
-
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                CupertinoPageRoute(
-                                    builder: (_) => const AppRouter()),
-                                    (route) => false,
-                              );
-                            });
-                          },
-                        ),
-                      ],
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: CupertinoButton(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  color: CupertinoColors.systemRed,
+                  borderRadius: BorderRadius.circular(16),
+                  onPressed: () {
+                    box.clear();
+                    Navigator.pushReplacement(
+                      context,
+                      CupertinoPageRoute(builder: (_) => const AppRouter()),
+                    );
+                  },
+                  child: const Text(
+                    "ERASE DATA",
+                    style: TextStyle(
+                      color: CupertinoColors.white,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                },
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                borderRadius: BorderRadius.circular(16),
-                child: const Text(
-                  "ERASE DATA",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.1,
                   ),
                 ),
               ),
